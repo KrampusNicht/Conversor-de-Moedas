@@ -1,0 +1,107 @@
+import java.util.Scanner;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
+
+public class ConversorDeMoedas {
+
+    private static final String API_KEY = aa96316b6460a51bf69e5a70;
+    private static final String API_URL = "https://v6.exchangerate-api.com/v6/" + API_KEY + "/latest/";
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int opcao = 0;
+
+        System.out.println("Bem-vindo ao Conversor de Moedas!");
+
+        while (opcao != 7) {
+            System.out.println("\n************************************************");
+            System.out.println("Selecione a conversão desejada:");
+            System.out.println("1) Dólar (USD) => Real Brasileiro (BRL)");
+            System.out.println("2) Real Brasileiro (BRL) => Dólar (USD)");
+            System.out.println("3) Dólar (USD) => Euro (EUR)");
+            System.out.println("4) Euro (EUR) => Dólar (USD)");
+            System.out.println("5) Dólar (USD) => Iene Japonês (JPY)");
+            System.out.println("6) Iene Japonês (JPY) => Dólar (USD)");
+            System.out.println("7) Sair");
+            System.out.println("************************************************");
+
+            try {
+                System.out.print("Digite a opção: ");
+                opcao = scanner.nextInt();
+
+                if (opcao >= 1 && opcao <= 6) {
+                    System.out.print("Digite o valor a ser convertido: ");
+                    double valor = scanner.nextDouble();
+                    scanner.nextLine();
+
+                    switch (opcao) {
+                        case 1:
+                            converterMoeda("USD", "BRL", valor);
+                            break;
+                        case 2:
+                            converterMoeda("BRL", "USD", valor);
+                            break;
+                        case 3:
+                            converterMoeda("USD", "EUR", valor);
+                            break;
+                        case 4:
+                            converterMoeda("EUR", "USD", valor);
+                            break;
+                        case 5:
+                            converterMoeda("USD", "JPY", valor);
+                            break;
+                        case 6:
+                            converterMoeda("JPY", "USD", valor);
+                            break;
+                    }
+                } else if (opcao != 7) {
+                    System.out.println("Opção inválida. Por favor, escolha uma opção entre 1 e 7.");
+                }
+
+            } catch (Exception e) {
+                System.out.println("Entrada inválida. Por favor, digite um número.");
+                scanner.nextLine();
+                opcao = 0;
+            }
+        }
+
+        System.out.println("Obrigado por usar o Conversor de Moedas. Até mais!");
+        scanner.close();
+    }
+
+    private static void converterMoeda(String base, String alvo, double valor) {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(API_URL + base))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                String jsonResponse = response.body();
+                Gson gson = new Gson();
+                JsonObject jsonObject = gson.fromJson(jsonResponse, JsonObject.class);
+                JsonObject taxas = jsonObject.getAsJsonObject("conversion_rates");
+
+                if (taxas.has(alvo)) {
+                    double taxaDeConversao = taxas.get(alvo).getAsDouble();
+                    double valorConvertido = valor * taxaDeConversao;
+                    System.out.printf("O valor de %.2f %s equivale a %.2f %s.\n", valor, base, valorConvertido, alvo);
+                } else {
+                    System.out.println("Taxa de conversão para " + alvo + " não encontrada.");
+                }
+
+            } else {
+                System.out.println("Erro ao obter as taxas de câmbio. Código de status: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.out.println("Erro na comunicação com a API: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+}
